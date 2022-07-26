@@ -1,6 +1,8 @@
 package org.acme.producer;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.reactive.messaging.kafka.KafkaAdmin;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.smallrye.reactive.messaging.kafka.Record;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,26 +20,21 @@ public class PayloadProducer {
   Logger logger;
 
   private Random random = new Random();
-  private List<NumberPayload> payload = generatePayload();
+  private final NumberPayload payload = generatePayload();
 
-  private List<NumberPayload> generatePayload() {
-    List<NumberPayload> payloadList = new ArrayList<>();
+  private NumberPayload generatePayload() {
+    Double[] numbersList = new Double[50000];
 
-    for (int i = 0; i < 1000; i++) {
-      double randomNumber1 = 0 + random.nextDouble() * 1000000;
-      double randomNumber2 = 0 + random.nextDouble() * 1000000;
-      payloadList.add(new NumberPayload(i + 1, randomNumber1, randomNumber2));
+    for (int i = 0; i < 50000; i++) {
+      numbersList[i] = 0 + random.nextDouble() * 1000000;
     }
 
-    return payloadList;
+    return new NumberPayload(1, numbersList);
   }
 
   // Populates movies into Kafka topic
   @Outgoing("numbers-payload")
   public Multi<Record<Integer, NumberPayload>> payload() {
-    logger.info("Adding payload of size " + payload.size());
-    return Multi.createFrom().items(payload.stream()
-        .map(numberPayload -> Record.of(numberPayload.getId(), numberPayload))
-    );
+    return Multi.createFrom().item(Record.of(payload.getId(), payload));
   }
 }

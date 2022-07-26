@@ -10,15 +10,13 @@ import lombok.Setter;
 public class NumberPayload {
 
   Timestamp timestamp;
-  Double number1;
-  Double number2;
+  Double[] numbersList;
   Integer id;
 
-  public NumberPayload(Integer id, Double number1, Double number2) {
+  public NumberPayload(Integer id, Double[] numberList) {
     Date date = new Date();
     this.id = id;
-    this.number1 = number1;
-    this.number2 = number2;
+    this.numbersList = numberList;
     this.timestamp = new Timestamp(date.getTime());
   }
 }
