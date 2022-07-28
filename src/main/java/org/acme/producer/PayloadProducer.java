@@ -1,16 +1,21 @@
 package org.acme.producer;
 
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.Record;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
+import java.util.List;
 import java.util.Random;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import org.acme.dto.NumberPayload;
 import org.acme.dto.Result;
+import org.acme.dto.ResultPayload;
+import org.bson.Document;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.logging.Logger;
@@ -20,6 +25,9 @@ public class PayloadProducer {
 
   @Inject
   Logger logger;
+
+  @Inject
+  MongoClient mongoClient;
 
   private Random random = new Random();
   private final NumberPayload payload = generatePayload();
@@ -36,11 +44,53 @@ public class PayloadProducer {
   // Populates movies into Kafka topic
   @Outgoing("numbers-payload")
   public Multi<KafkaRecord<Integer, NumberPayload>> payload() {
+    addNumberPayloadToMongo(payload);
     return Multi.createFrom().item(KafkaRecord.of(payload.getId(), payload));
   }
 
   @Incoming("result-topic")
-  public void newPayload(Result payload) {
-  logger.info(payload);
+  public void newPayload(ResultPayload payload) {
+    logger.info("Received payload: " + payload);
+    addResultPayloadToMongo(payload);
+  }
+
+  public List<ResultPayload> list(){
+    List<ResultPayload> list = new ArrayList<>();
+    MongoCursor<Document> cursor = getCollection("resultsPayload").find().iterator();
+    try {
+      while (cursor.hasNext()) {
+        Document document = cursor.next();
+        ResultPayload resultPayload = new ResultPayload();
+        resultPayload.setId(document.getInteger("id"));
+        resultPayload.setTimestamp(Timestamp.valueOf(document.getString("timestamp")));
+        resultPayload.setNumbers(document.getList("numbers", Double.class));
+        resultPayload.setResults(document.getList("results", Result.class));
+        list.add(resultPayload);
+      }
+    } finally {
+      cursor.close();
+    }
+    return list;
+  }
+
+  public void addNumberPayloadToMongo(NumberPayload payload) {
+    Document document = new Document()
+        .append("id", payload.getId())
+        .append("numbers", Arrays.toString(payload.getNumbersList()))
+        .append("timestamp", payload.getTimestamp());
+    getCollection("numberPayloads").insertOne(document);
+  }
+
+  public void addResultPayloadToMongo(ResultPayload payload) {
+    Document document = new Document()
+        .append("id", payload.getId())
+        .append("numbers", payload.getNumbers())
+        .append("timestamp", payload.getTimestamp())
+        .append("results", payload.getResults());
+    getCollection("resultsPayload").insertOne(document);
+  }
+
+  private MongoCollection<Document> getCollection(String collectionName) {
+    return mongoClient.getDatabase("PerformanceAnalysis").getCollection(collectionName);
   }
 }
