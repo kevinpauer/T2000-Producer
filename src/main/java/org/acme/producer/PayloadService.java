@@ -21,7 +21,7 @@ import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
-public class PayloadProducer {
+public class PayloadService {
 
   @Inject
   Logger logger;
@@ -41,7 +41,6 @@ public class PayloadProducer {
     return new NumberPayload(1, numbersList);
   }
 
-  // Populates movies into Kafka topic
   @Outgoing("numbers-payload")
   public Multi<KafkaRecord<Integer, NumberPayload>> payload() {
     addNumberPayloadToMongo(payload);
@@ -64,7 +63,8 @@ public class PayloadProducer {
         resultPayload.setId(document.getInteger("id"));
         resultPayload.setTimestamp(Timestamp.valueOf(document.getString("timestamp")));
         resultPayload.setNumbers(document.getList("numbers", Double.class));
-        resultPayload.setResults(document.getList("results", Result.class));
+        Document resultsDocument = (Document) document.get("result");
+        resultPayload.setResult((Result) resultsDocument.get("result"));
         list.add(resultPayload);
       }
     } finally {
@@ -82,11 +82,12 @@ public class PayloadProducer {
   }
 
   public void addResultPayloadToMongo(ResultPayload payload) {
+    logger.info("Timestamp ResultPayload before Mongo: " + payload.getTimestamp().toString());
     Document document = new Document()
         .append("id", payload.getId())
         .append("numbers", payload.getNumbers())
-        .append("timestamp", payload.getTimestamp())
-        .append("results", payload.getResults());
+        .append("timestamp", payload.getTimestamp().toString())
+        .append("result", payload.getResult());
     getCollection("resultsPayload").insertOne(document);
   }
 

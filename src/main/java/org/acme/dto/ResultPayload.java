@@ -11,5 +11,5 @@ public class ResultPayload {
   Integer id;
   List<Double> numbers;
   Timestamp timestamp;
-  List<Result> results;
+  Result result;
 }
