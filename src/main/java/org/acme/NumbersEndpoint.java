@@ -7,24 +7,24 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import org.acme.dto.ResultPayload;
+import org.acme.dto.NumberPayload;
 import org.acme.producer.PayloadService;
 
-@Path("/results")
+@Path("/numberPayload")
 @Produces("application/json")
 @Consumes("application/json")
-public class ResultEndpoint {
+public class NumbersEndpoint {
   @Inject
   PayloadService payloadService;
 
   @GET
-  public List<ResultPayload> list() {
-    return payloadService.listResultPayload();
+  public List<NumberPayload> list() {
+    return payloadService.listNumberPayload();
   }
 
   @POST
-  public List<ResultPayload> add(ResultPayload result) {
-    payloadService.addResultPayloadToMongo(result);
-    return payloadService.listResultPayload();
+  public List<NumberPayload> add(NumberPayload numberPayload) {
+    payloadService.addNumberPayloadToMongo(numberPayload);
+    return payloadService.listNumberPayload();
   }
 }

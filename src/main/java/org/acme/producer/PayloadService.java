@@ -7,7 +7,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import javax.enterprise.context.ApplicationScoped;
@@ -33,12 +33,17 @@ public class PayloadService {
   private final NumberPayload payload = generatePayload();
 
   private NumberPayload generatePayload() {
-    Double[] numbersList = new Double[50000];
+    NumberPayload numberPayload = new NumberPayload();
+    List<Double> numbersList = new ArrayList<>();
 
     for (int i = 0; i < 50000; i++) {
-      numbersList[i] = 0 + random.nextDouble() * 1000000;
+      numbersList.add(i, 0 + random.nextDouble() * 1000000);
     }
-    return new NumberPayload(1, numbersList);
+    numberPayload.setId(1);
+    numberPayload.setNumbersList(numbersList);
+    Date date = new Date();
+    numberPayload.setTimestamp(new Timestamp(date.getTime()));
+    return numberPayload;
   }
 
   @Outgoing("numbers-payload")
@@ -53,10 +58,9 @@ public class PayloadService {
     addResultPayloadToMongo(payload);
   }
 
-  public List<ResultPayload> list(){
+  public List<ResultPayload> listResultPayload() {
     List<ResultPayload> list = new ArrayList<>();
-    MongoCursor<Document> cursor = getCollection("resultsPayload").find().iterator();
-    try {
+    try (MongoCursor<Document> cursor = getCollection("resultsPayload").find().iterator()) {
       while (cursor.hasNext()) {
         Document document = cursor.next();
         ResultPayload resultPayload = new ResultPayload();
@@ -67,17 +71,31 @@ public class PayloadService {
         resultPayload.setResult((Result) resultsDocument.get("result"));
         list.add(resultPayload);
       }
-    } finally {
-      cursor.close();
+    }
+    return list;
+  }
+
+  public List<NumberPayload> listNumberPayload() {
+    List<NumberPayload> list = new ArrayList<>();
+    try (MongoCursor<Document> cursor = getCollection("numberPayloads").find().iterator()) {
+      while (cursor.hasNext()) {
+        Document document = cursor.next();
+        NumberPayload numberPayload = new NumberPayload();
+        numberPayload.setTimestamp(Timestamp.valueOf(document.getString("timestamp")));
+        numberPayload.setNumbersList(document.getList("numbers", Double.class));
+        numberPayload.setId(document.getInteger("id"));
+        list.add(numberPayload);
+      }
     }
     return list;
   }
 
   public void addNumberPayloadToMongo(NumberPayload payload) {
+    logger.info("Timestamp NumberPayload before Mongo: " + payload.getTimestamp().toString());
     Document document = new Document()
         .append("id", payload.getId())
-        .append("numbers", Arrays.toString(payload.getNumbersList()))
-        .append("timestamp", payload.getTimestamp());
+        .append("numbers", payload.getNumbersList())
+        .append("timestamp", payload.getTimestamp().toString());
     getCollection("numberPayloads").insertOne(document);
   }
 
