@@ -36,7 +36,7 @@ public class PayloadService {
     NumberPayload numberPayload = new NumberPayload();
     List<Double> numbersList = new ArrayList<>();
 
-    for (int i = 0; i < 50000; i++) {
+    for (int i = 0; i < 10; i++) {
       numbersList.add(i, 0 + random.nextDouble() * 1000000);
     }
     numberPayload.setId(1);

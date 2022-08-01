@@ -1,10 +1,37 @@
-version: '3.7'
+version: "3.7"
 services:
-  mongodb_container:
-    image: mongo:latest
+
+  mongo:
+    image: mongo
+    restart: always
     ports:
       - 27017:27017
-    volumes:
-      - mongodb_data_container:/data/db
-volumes:
-  mongodb_data_container:
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8079:8081
+    environment:
+      VCAP_APP_PORT: 8081
+
+  kafka:
+    container_name: kafka_t2000
+    image: wurstmeister/kafka
+    ports:
+      - 9092:9092
+    hostname: kafka
+    links:
+      - zookeeper
+    environment:
+      - KAFKA_ADVERTISED_HOST_NAME=kafka
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_PORT=9092
+      - KAFKA_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - 2181:2181
