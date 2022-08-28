@@ -12,4 +12,5 @@ public class NumberPayload {
   Timestamp timestamp;
   List<Double> numbersList;
   Integer id;
+  Integer payloadSize;
 }

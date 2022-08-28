@@ -5,28 +5,26 @@ services:
     image: mongo
     restart: always
     ports:
-      - 27017:27017
+      - "27017:27017"
 
   mongo-express:
     image: mongo-express
     restart: always
     ports:
-      - 8079:8081
+      - "8079:8081"
     environment:
       VCAP_APP_PORT: 8081
 
   kafka:
-    container_name: kafka_t2000
+    container_name: kafka
     image: wurstmeister/kafka
     ports:
-      - 9092:9092
-    hostname: kafka
+      - "9092:9092"
     links:
       - zookeeper
     environment:
       - KAFKA_ADVERTISED_HOST_NAME=kafka
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_ADVERTISED_PORT=9092
       - KAFKA_LISTENERS=PLAINTEXT://:9092
       - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
 
@@ -34,4 +32,41 @@ services:
   zookeeper:
     image: wurstmeister/zookeeper
     ports:
-      - 2181:2181
+      - "2181:2181"
+
+#  jvm-consumer:
+#    container_name: pa-consumer-jvm
+#    image: pa-consumer-jvm
+#    ports:
+#      - "9000:9001"
+#    environment:
+#      - CONSUMER_GROUP=consumer1
+#    links:
+#      - kafka
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '0.01'
+#          memory: 200M
+#        reservations:
+#          cpus: '0.01'
+#          memory: 200M
+#
+#  native-consumer:
+#    container_name: pa-consumer-native
+#    image: pa-consumer-native
+#    ports:
+#      - "9002:9003"
+#    environment:
+#      - CONSUMER_GROUP=consumer2
+#    depends_on:
+#      - kafka
+#      - zookeeper
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '0.01'
+#          memory: 200M
+#        reservations:
+#          cpus: '0.01'
+#          memory: 200M

@@ -44,6 +44,7 @@ public class PayloadService {
     numberPayload.setNumbersList(numbersList);
     Date date = new Date();
     numberPayload.setTimestamp(new Timestamp(date.getTime()));
+    numberPayload.setPayloadSize(10);
     return numberPayload;
   }
 
@@ -52,6 +53,7 @@ public class PayloadService {
     clearDatabase();
     payload = generatePayload(0);
     addNumberPayloadToMongo(payload);
+    logger.info("Sending numberPayload to Consumer. " + payload.getTimestamp());
     return Multi.createFrom().item(KafkaRecord.of(payload.getId(), payload));
   }
 
@@ -71,8 +73,8 @@ public class PayloadService {
         resultPayload.setId(document.getInteger("id"));
         resultPayload.setTimestamp(Timestamp.valueOf(document.getString("timestamp")));
         resultPayload.setNumbers(document.getList("numbers", Double.class));
-        Result result = new Result(document.getInteger("consumer"),
-            Timestamp.valueOf(document.getString("timestamp")),
+        Result result = new Result(document.getString("consumer"),
+            Timestamp.valueOf(document.getString("publishedTimestamp")),
             document.getBoolean("isCorrect"));
         resultPayload.setResult(result);
         list.add(resultPayload);
@@ -90,6 +92,7 @@ public class PayloadService {
         numberPayload.setTimestamp(Timestamp.valueOf(document.getString("timestamp")));
         numberPayload.setNumbersList(document.getList("numbers", Double.class));
         numberPayload.setId(document.getInteger("id"));
+        numberPayload.setPayloadSize(document.getInteger("payloadSize"));
         list.add(numberPayload);
       }
     }
@@ -101,18 +104,19 @@ public class PayloadService {
     Document document = new Document()
         .append("id", payload.getId())
         .append("numbers", payload.getNumbersList())
-        .append("timestamp", payload.getTimestamp().toString());
+        .append("timestamp", payload.getTimestamp().toString())
+        .append("payloadSize", payload.getPayloadSize());
     getCollection("numberPayloads").insertOne(document);
   }
 
   public void addResultPayloadToMongo(ResultPayload payload) {
-    logger.info("Timestamp ResultPayload before Mongo: " + payload.getTimestamp().toString());
+    logger.info("Timestamp ResultPayload before Mongo: " + payload.getResult().getPublishedTimestamp());
     Document document = new Document()
         .append("id", payload.getId())
         .append("numbers", payload.getNumbers())
         .append("timestamp", payload.getTimestamp().toString())
         .append("consumer", payload.getResult().getConsumer())
-        .append("publishedTimestamp", payload.getResult().getPublishedTimestamp())
+        .append("publishedTimestamp", payload.getResult().getPublishedTimestamp().toString())
         .append("isCorrect", payload.getResult().getIsCorrect());
     getCollection("resultsPayload").insertOne(document);
   }
