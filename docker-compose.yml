@@ -15,58 +15,67 @@ services:
     environment:
       VCAP_APP_PORT: 8081
 
-  kafka:
-    container_name: kafka
-    image: wurstmeister/kafka
-    ports:
-      - "9092:9092"
-    links:
-      - zookeeper
-    environment:
-      - KAFKA_ADVERTISED_HOST_NAME=kafka
-      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_LISTENERS=PLAINTEXT://:9092
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
-
-
   zookeeper:
     image: wurstmeister/zookeeper
     ports:
       - "2181:2181"
 
-#  jvm-consumer:
-#    container_name: pa-consumer-jvm
-#    image: pa-consumer-jvm
-#    ports:
-#      - "9000:9001"
-#    environment:
-#      - CONSUMER_GROUP=consumer1
-#    links:
-#      - kafka
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.01'
-#          memory: 200M
-#        reservations:
-#          cpus: '0.01'
-#          memory: 200M
-#
-#  native-consumer:
-#    container_name: pa-consumer-native
-#    image: pa-consumer-native
-#    ports:
-#      - "9002:9003"
-#    environment:
-#      - CONSUMER_GROUP=consumer2
-#    depends_on:
-#      - kafka
-#      - zookeeper
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.01'
-#          memory: 200M
-#        reservations:
-#          cpus: '0.01'
-#          memory: 200M
+  kafka:
+    container_name: kafka
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    expose:
+      - "9093"
+    environment:
+      KAFKA_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    depends_on:
+      - zookeeper
+
+  jvm-consumer:
+    container_name: pa-consumer-jvm
+    image: pa-consumer-jvm
+    ports:
+      - "9000:9000"
+    environment:
+      CONSUMER_GROUP: consumer1
+    links:
+      - kafka
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 200M
+        reservations:
+          cpus: '0.01'
+          memory: 200M
+
+  native-consumer:
+    container_name: pa-consumer-native
+    image: pa-consumer-native
+    ports:
+      - "9001:9001"
+    environment:
+      - CONSUMER_GROUP=consumer2
+    links:
+      - kafka
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 200M
+        reservations:
+          cpus: '0.01'
+          memory: 200M
+
+  pa-producer:
+    container_name: pa-producer
+    image: pa-producer
+    ports:
+      - "8080:8080"
+    links:
+      - kafka
